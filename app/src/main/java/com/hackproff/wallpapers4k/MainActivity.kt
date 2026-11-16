@@ -4,6 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,11 +20,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
@@ -29,6 +31,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
@@ -36,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -43,12 +47,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -162,39 +174,138 @@ fun App(vm: MainViewModel = viewModel()) {
     }
 
     selected?.let { wp ->
-        AlertDialog(
-            onDismissRequest = { if (!downloading) selected = null },
-            title = { Text("${wp.width}×${wp.height} · ${wp.source}") },
-            text = {
-                AsyncImage(
-                    model = wp.thumbUrl,
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            },
-            confirmButton = {
-                Button(
-                    enabled = !downloading,
-                    onClick = {
-                        scope.launch {
-                            downloading = true
-                            try {
-                                Downloader.save(context, wp)
-                                snackbar.showSnackbar("Salvo em Pictures/Wallpapers4K")
-                                selected = null
-                            } catch (e: Exception) {
-                                snackbar.showSnackbar("Falha: ${e.message}")
-                            } finally {
-                                downloading = false
-                            }
-                        }
-                    },
-                ) { Text(if (downloading) "Baixando…" else "Baixar") }
-            },
-            dismissButton = {
-                TextButton(enabled = !downloading, onClick = { selected = null }) { Text("Fechar") }
+        FullPreview(
+            wp = wp,
+            downloading = downloading,
+            onClose = { if (!downloading) selected = null },
+            onDownload = {
+                scope.launch {
+                    downloading = true
+                    try {
+                        Downloader.save(context, wp)
+                        snackbar.showSnackbar("Salvo em Pictures/Wallpapers4K")
+                        selected = null
+                    } catch (e: Exception) {
+                        snackbar.showSnackbar("Falha: ${e.message}")
+                    } finally {
+                        downloading = false
+                    }
+                }
             },
         )
+    }
+}
+
+/**
+ * Tela cheia com a imagem COMPLETA (sem cortes), carregada do arquivo original.
+ * Pinça para dar zoom, toque duplo para ampliar/resetar. Se o original não carregar, o download fica bloqueado.
+ */
+@Composable
+fun FullPreview(
+    wp: Wallpaper,
+    downloading: Boolean,
+    onClose: () -> Unit,
+    onDownload: () -> Unit,
+) {
+    val context = LocalContext.current
+    var loading by remember(wp) { mutableStateOf(true) }
+    var failed by remember(wp) { mutableStateOf(false) }
+    var zoom by remember(wp) { mutableFloatStateOf(1f) }
+    var offset by remember(wp) { mutableStateOf(Offset.Zero) }
+
+    Dialog(
+        onDismissRequest = onClose,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(color = Color.Black, modifier = Modifier.fillMaxSize()) {
+            Box(Modifier.fillMaxSize()) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .pointerInput(wp) {
+                            detectTransformGestures { _, pan, gestureZoom, _ ->
+                                zoom = (zoom * gestureZoom).coerceIn(1f, 5f)
+                                offset = if (zoom == 1f) Offset.Zero else offset + pan
+                            }
+                        }
+                        .pointerInput(wp) {
+                            detectTapGestures(onDoubleTap = {
+                                zoom = if (zoom > 1f) 1f else 2.5f
+                                offset = Offset.Zero
+                            })
+                        }
+                        .graphicsLayer {
+                            scaleX = zoom
+                            scaleY = zoom
+                            translationX = offset.x
+                            translationY = offset.y
+                        },
+                ) {
+                    // Miniatura por baixo, para não ficar tela preta enquanto o original carrega.
+                    AsyncImage(
+                        model = wp.thumbUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(wp.fullUrl)
+                            .size(4096, 4096)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize(),
+                        onLoading = { loading = true },
+                        onSuccess = { loading = false },
+                        onError = { loading = false; failed = true },
+                    )
+                }
+
+                if (loading) {
+                    CircularProgressIndicator(Modifier.align(Alignment.Center))
+                }
+
+                Row(
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .background(Color.Black.copy(alpha = 0.55f))
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text("${wp.width}×${wp.height} · ${wp.source}", color = Color.White)
+                    TextButton(enabled = !downloading, onClick = onClose) { Text("Fechar") }
+                }
+
+                Column(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .background(Color.Black.copy(alpha = 0.55f))
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        when {
+                            failed -> "Não foi possível carregar a imagem completa. Ela provavelmente não baixaria direito."
+                            loading -> "Carregando a imagem completa…"
+                            else -> "Pinça para ampliar · toque duplo para dar zoom"
+                        },
+                        color = Color.White,
+                        style = MaterialTheme.typography.labelMedium,
+                        textAlign = TextAlign.Center,
+                    )
+                    Button(
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !downloading && !failed,
+                        onClick = onDownload,
+                    ) { Text(if (downloading) "Baixando…" else "Baixar") }
+                }
+            }
+        }
     }
 }

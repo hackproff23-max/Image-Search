@@ -24,6 +24,28 @@ android {
         buildConfigField("String", "SERPER_KEY", "\"$serperKey\"")
     }
 
+    // Chave de assinatura própria: o APK mantém a mesma assinatura em todo build (permite atualizar sem desinstalar).
+    // Atenção: a chave está no repositório. Serve para uso pessoal, não para publicar na Play Store.
+    signingConfigs {
+        create("release") {
+            storeFile = file("release.jks")
+            storePassword = "dLa6lJhyoB04hh-_FTaVt7Jh"
+            keyAlias = "wallpapers"
+            keyPassword = "dLa6lJhyoB04hh-_FTaVt7Jh"
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
+    lint {
+        checkReleaseBuilds = false
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true

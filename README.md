@@ -1,5 +1,7 @@
 # Wallpapers 4K
 
+<img src="logo.png" width="96" alt="Logo Wallpapers 4K">
+
 App Android (Kotlin + Jetpack Compose) que busca wallpapers de boa qualidade e salva em `Pictures/Wallpapers4K`.
 
 - **Orientação:** Comprido (vertical) ou Horizontal
@@ -12,7 +14,9 @@ App Android (Kotlin + Jetpack Compose) que busca wallpapers de boa qualidade e s
 
 ## Build
 
-O GitHub Actions compila a cada push na `main` e publica o APK em *Actions → Build APK → Artifacts*.
+O GitHub Actions compila a cada push na `main` e publica o APK **assinado** (release) em *Actions → Build APK → Artifacts*.
+
+A assinatura usa `app/release.jks` (alias `wallpapers`), então todo APK novo instala por cima do anterior. A chave fica no repositório: serve para uso pessoal. Para publicar na Play Store, gere outra chave e guarde-a em secrets.
 
 Chaves das fontes opcionais: crie os secrets `SERPER_KEY` e `PEXELS_KEY` em *Settings → Secrets and variables → Actions*. Sem chave, a fonte correspondente fica desativada.
 

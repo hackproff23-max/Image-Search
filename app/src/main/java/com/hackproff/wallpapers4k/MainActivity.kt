@@ -101,16 +101,16 @@ fun App(vm: MainViewModel = viewModel()) {
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf(2, 3, 4).forEach { s ->
+                Quality.values().forEach { q ->
                     FilterChip(
-                        selected = vm.scale == s,
-                        onClick = { vm.scale = s; vm.search() },
-                        label = { Text("${s}x") },
+                        selected = vm.quality == q,
+                        onClick = { vm.quality = q; vm.search() },
+                        label = { Text(q.label) },
                     )
                 }
             }
             Text(
-                "Mínimo: ${vm.minW}×${vm.minH} (${vm.scale}x a tela do Redmi 13C)",
+                "Mínimo: ${vm.minW}×${vm.minH}",
                 style = MaterialTheme.typography.labelMedium,
             )
 
@@ -153,7 +153,7 @@ fun App(vm: MainViewModel = viewModel()) {
                 }
                 if (!vm.loading && vm.items.isEmpty()) {
                     Text(
-                        vm.error ?: "Nada encontrado nessa resolução. Tente 2x ou outra busca.",
+                        vm.error ?: "Nada encontrado nessa qualidade. Tente uma qualidade menor ou outra busca.",
                         modifier = Modifier.align(Alignment.Center).padding(24.dp),
                     )
                 }

@@ -1,9 +1,9 @@
 # Wallpapers 4K
 
-App Android (Kotlin + Jetpack Compose) que busca wallpapers em alta resolução e salva em `Pictures/Wallpapers4K`.
+App Android (Kotlin + Jetpack Compose) que busca wallpapers de boa qualidade e salva em `Pictures/Wallpapers4K`.
 
 - **Orientação:** Comprido (vertical) ou Horizontal
-- **Resolução mínima:** múltiplo (2x, 3x, 4x por lado) da tela do Redmi 13C (720×1600). Padrão 2x = 1440×3200 (4x a área em pixels)
+- **Qualidade mínima:** Full HD (1920×1080), 2K (2560×1440) ou 4K (3840×2160). No modo comprido as medidas são invertidas. Padrão: 2K
 - **Fontes:**
   - Wallhaven (sem chave, SFW)
   - Google Imagens via [Serper.dev](https://serper.dev) (chave gratuita, 2.500 consultas)

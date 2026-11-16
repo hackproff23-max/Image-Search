@@ -1,7 +1,6 @@
 package com.hackproff.wallpapers4k
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -13,14 +12,17 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
-/** Tela do Redmi 13C: 720 x 1600 px. A busca exige imagens com `scale` vezes essa resolução (por lado). */
-const val SCREEN_W = 720
-const val SCREEN_H = 1600
+/** Qualidade mínima exigida (lado maior x lado menor). No modo comprido o lado maior vira a altura. */
+enum class Quality(val label: String, val longSide: Int, val shortSide: Int) {
+    FULL_HD("Full HD", 1920, 1080),
+    QHD("2K", 2560, 1440),
+    UHD("4K", 3840, 2160),
+}
 
 class MainViewModel : ViewModel() {
     var query by mutableStateOf("")
     var orientation by mutableStateOf(Orientation.PORTRAIT)
-    var scale by mutableIntStateOf(2)
+    var quality by mutableStateOf(Quality.QHD)
 
     val items = mutableStateListOf<Wallpaper>()
     var loading by mutableStateOf(false)
@@ -35,8 +37,8 @@ class MainViewModel : ViewModel() {
     private var job: Job? = null
     private var started = false
 
-    val minW: Int get() = (if (orientation == Orientation.PORTRAIT) SCREEN_W else SCREEN_H) * scale
-    val minH: Int get() = (if (orientation == Orientation.PORTRAIT) SCREEN_H else SCREEN_W) * scale
+    val minW: Int get() = if (orientation == Orientation.PORTRAIT) quality.shortSide else quality.longSide
+    val minH: Int get() = if (orientation == Orientation.PORTRAIT) quality.longSide else quality.shortSide
 
     fun startOnce() {
         if (started) return

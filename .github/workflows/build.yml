@@ -21,7 +21,7 @@ jobs:
           gradle-version: "8.10.2"
 
       - name: Compilar APK
-        run: gradle assembleDebug -PPEXELS_KEY="${{ secrets.PEXELS_KEY }}"
+        run: gradle assembleDebug -PPEXELS_KEY="${{ secrets.PEXELS_KEY }}" -PSERPER_KEY="${{ secrets.SERPER_KEY }}"
 
       - uses: actions/upload-artifact@v4
         with:

@@ -28,7 +28,7 @@ class MainViewModel : ViewModel() {
     var error by mutableStateOf<String?>(null)
         private set
 
-    private val sources: List<WallpaperSource> = listOf(WallhavenSource, PexelsSource)
+    private val sources: List<WallpaperSource> = listOf(WallhavenSource, SerperSource, PexelsSource)
     private var page = 1
     private var hasMore = true
     private var generation = 0
@@ -68,7 +68,14 @@ class MainViewModel : ViewModel() {
         job = viewModelScope.launch {
             try {
                 val results = coroutineScope {
-                    sources.map { s -> async { runCatching { s.search(q, o, w, h, p) } } }.awaitAll()
+                    sources.map { s ->
+                        async {
+                            runCatching {
+                                val result = s.search(q, o, w, h, p)
+                                if (s.needsVerification) result.copy(items = Verifier.filter(result.items)) else result
+                            }
+                        }
+                    }.awaitAll()
                 }
                 if (gen != generation) return@launch
                 val ok = results.mapNotNull { it.getOrNull() }

@@ -18,6 +18,10 @@ android {
         // Chave opcional do Pexels (https://www.pexels.com/api/). Sem chave, a fonte Pexels fica desativada.
         val pexelsKey = providers.gradleProperty("PEXELS_KEY").getOrElse("")
         buildConfigField("String", "PEXELS_KEY", "\"$pexelsKey\"")
+
+        // Chave do Serper.dev (Google Imagens): https://serper.dev. Sem chave, a fonte Google fica desativada.
+        val serperKey = providers.gradleProperty("SERPER_KEY").getOrElse("")
+        buildConfigField("String", "SERPER_KEY", "\"$serperKey\"")
     }
 
     buildFeatures {
